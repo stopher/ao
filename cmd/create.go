@@ -21,6 +21,9 @@ import (
 	"os"
 )
 
+var createFileName string
+var createFolderName string
+
 // createCmd represents the create command
 var createCmd = &cobra.Command{
 	Use:   "create vault <vaultname> | secret <vaultname> <secretname>",
@@ -28,7 +31,7 @@ var createCmd = &cobra.Command{
 	Long:  `Creates a vault or a secret in a vault.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		var createcmdObject createcmd.CreatecmdClass
-		output, err := createcmdObject.CreateObject(args, &persistentOptions, allClusters)
+		output, err := createcmdObject.CreateObject(args, &persistentOptions, allClusters, createFileName, createFolderName)
 		if err != nil {
 			l := log.New(os.Stderr, "", 0)
 			l.Println(err.Error())
@@ -54,4 +57,6 @@ func init() {
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
 	// createCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	createCmd.Flags().StringVarP(&createFileName, "from-file", "f", "", "Create a vault from a json definition file")
+	createCmd.Flags().StringVarP(&createFolderName, "from-folder", "d", "", "Crate a vault from a set of secret and permission files")
 }

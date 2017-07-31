@@ -1,10 +1,12 @@
 package createcmd
 
 import (
+	"encoding/json"
 	"errors"
 	"github.com/skatteetaten/aoc/pkg/auroraconfig"
 	"github.com/skatteetaten/aoc/pkg/cmdoptions"
 	"github.com/skatteetaten/aoc/pkg/configuration"
+	"github.com/skatteetaten/aoc/pkg/fileutil"
 	"github.com/skatteetaten/aoc/pkg/serverapi_v2"
 )
 
@@ -70,8 +72,29 @@ func (createcmdClass *CreatecmdClass) createSecret(vaultName string, secretName 
 	return "Not implemented yet, use edit secret to create a new secret", nil
 }
 
-func (createcmdClass *CreatecmdClass) CreateObject(args []string, persistentOptions *cmdoptions.CommonCommandOptions, allClusters bool) (output string, err error) {
-	err = validateCreatecmd(args)
+func (createcmdClass *CreatecmdClass) importVaultFile(filename string, persistentOptions *cmdoptions.CommonCommandOptions) (output string, err error) {
+	var vault serverapi_v2.Vault
+
+	vaultFileContent, err := fileutil.ReadFile(filename)
+	if err != nil {
+		return "", err
+	}
+
+	err = json.Unmarshal([]byte(vaultFileContent), &vault)
+	if err != nil {
+		return "", err
+	}
+
+	vaultname := vault.Name
+	message, err := auroraconfig.PutVault(vaultname, vault, "", persistentOptions, createcmdClass.getAffiliation(), createcmdClass.configuration.GetOpenshiftConfig())
+	if err != nil {
+		return "", errors.New(message)
+	}
+	return
+}
+
+func (createcmdClass *CreatecmdClass) CreateObject(args []string, persistentOptions *cmdoptions.CommonCommandOptions, allClusters bool, fromFile string, fromFolder string) (output string, err error) {
+	err = validateCreatecmd(args, fromFile, fromFolder)
 	if err != nil {
 		return
 	}
@@ -80,7 +103,15 @@ func (createcmdClass *CreatecmdClass) CreateObject(args []string, persistentOpti
 	switch commandStr {
 	case "vault":
 		{
-			output, err = createcmdClass.createVault(args[1], persistentOptions)
+			if fromFile != "" {
+				output, err = createcmdClass.importVaultFile(fromFile, persistentOptions)
+			} else {
+				var vaultname = ""
+				if len(args) > 1 {
+					vaultname = args[1]
+				}
+				output, err = createcmdClass.createVault(vaultname, persistentOptions)
+			}
 		}
 	case "secret":
 		{
@@ -91,7 +122,7 @@ func (createcmdClass *CreatecmdClass) CreateObject(args []string, persistentOpti
 
 }
 
-func validateCreatecmd(args []string) (err error) {
+func validateCreatecmd(args []string, fromFile string, fromFolder string) (err error) {
 	if len(args) < 1 {
 		err = errors.New(UsageString)
 		return
@@ -101,7 +132,11 @@ func validateCreatecmd(args []string) (err error) {
 	switch commandStr {
 	case "vault":
 		{
-			if len(args) != 2 {
+			var expectedAguments = 2
+			if fromFile != "" {
+				expectedAguments = 1
+			}
+			if len(args) != expectedAguments {
 				err = errors.New(UsageString)
 				return
 			}

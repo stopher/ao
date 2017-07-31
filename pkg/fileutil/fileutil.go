@@ -98,6 +98,19 @@ func WriteFile(folder string, filename string, content string) (err error) {
 	return
 }
 
+func ReadFile(filename string) (content string, err error) {
+	if IsLegalFileFolder(filename) != SpecIsFile {
+		err = errors.New("Illegal file")
+		return "", err
+	}
+	fileBytes, err := ioutil.ReadFile(filename)
+	if err != nil {
+		return "", err
+	}
+	content = string(fileBytes)
+	return content, nil
+}
+
 func repeatString(str string, n int) (output string) {
 	for i := 0; i < n; i++ {
 		output += str
