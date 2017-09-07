@@ -15,6 +15,7 @@ var vaultAddUser string
 var vaultRemoveUser string
 
 var vaultFolder string
+var secretFile string
 
 // vaultCmd represents the vault command
 var vaultCmd = &cobra.Command{
@@ -41,7 +42,7 @@ If no vaultname is given, the vault will be named the same as the <folder>.`,
 			if len(args) == 1 {
 				vaultname = args[0]
 			}
-			vault.CreateVault(vaultname, config, vaultFolder, vaultAddUser, vaultAddGroup)
+			vault.CreateVault(vaultname, config, vaultFolder, secretFile, vaultAddUser, vaultAddGroup)
 		} else {
 			fmt.Println(cmd.UseLine())
 		}
@@ -169,7 +170,8 @@ Vault2 will contain 1 secret: secretfile3.`,
 
 func init() {
 	RootCmd.AddCommand(vaultCmd)
-	vaultCreateCmd.Flags().StringVarP(&vaultFolder, "folder", "f", "", "Creates a vault from a set of secret files")
+	vaultCreateCmd.Flags().StringVarP(&vaultFolder, "folder", "", "", "Creates a vault from a set of secret files")
+	vaultCreateCmd.Flags().StringVarP(&secretFile, "from-file", "f", "", "Create a secret with til files content.  If the vault does not exists, it is created as well")
 	vaultCreateCmd.Flags().StringVarP(&vaultAddUser, "user", "u", "", "Adds a permission for the given user")
 	vaultCreateCmd.Flags().StringVarP(&vaultAddGroup, "group", "g", "", "Adds a permission for the given group")
 

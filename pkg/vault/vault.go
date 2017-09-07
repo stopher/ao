@@ -25,10 +25,17 @@ type Vault struct {
 }
 */
 
-func CreateVault(vaultname string, config *configuration.ConfigurationClass, folderName string, addUser string, addGroup string) (output string, err error) {
+func CreateVault(vaultname string, config *configuration.ConfigurationClass, folderName string, secretFile string, addUser string, addGroup string) (output string, err error) {
 	var vault serverapi.Vault
 
-	if folderName == "" {
+	vault, err = auroraconfig.GetVault(vaultname, config)
+	if err != nil {
+		// No such vault
+		vault.Name = vaultname
+		vault.Secrets = make(map[string]string)
+	}
+
+	/*if folderName == "" {
 		vault.Name = vaultname
 		vault.Secrets = make(map[string]string)
 	} else {
@@ -40,7 +47,8 @@ func CreateVault(vaultname string, config *configuration.ConfigurationClass, fol
 		if vaultname != "" {
 			vault.Name = vaultname
 		}
-	}
+	}*/
+
 	// Add permissions if specified
 	if addUser != "" {
 		vault.Permissions.Users = append(vault.Permissions.Users, addUser)
@@ -274,6 +282,35 @@ func vaultsFolder2VaultsArray(folderName string) (vaults []serverapi.Vault, err 
 	}
 
 	return vaults, nil
+}
+
+func scretsFolder2Secrets(folderName string) (secrets map[string]string, err error) {
+	secrets = make(map[string]string)
+	files, err := ioutil.ReadDir(folderName)
+	if err != nil {
+		return secrets, err
+	}
+
+	vaultIndex := 0
+	for _, f := range files {
+		absolutePath := filepath.Join(folderName, f.Name())
+		if fileutil.IsLegalFileFolder(absolutePath) == fileutil.SpecIsFile {
+			// Read file content
+			secretContent, err := ioutil.ReadFile(absolutePath)
+			if err != nil {
+				return vault, err
+			}
+			// Check for permissions file
+			if !strings.Contains(filepath.Base(absolutePath), "permission") {
+				secretContent64 := base64.StdEncoding.EncodeToString(secretContent)
+				secretName := filepath.Base(absolutePath)
+				secrets[secretName] = secretContent64
+				vaultIndex++
+			}
+		}
+	}
+
+	return
 }
 
 func secretsFolder2Vault(folderName string) (vault serverapi.Vault, err error) {
